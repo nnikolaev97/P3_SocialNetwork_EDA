@@ -75,7 +75,6 @@ class SocialNetworkServiceImpTest {
 
         socialNetwork.addPerson(new Person("Person 1001"));
         Assertions.assertEquals(101, socialNetwork.getPeople().size(), "Add Person should've added Person 101");
-
     }
 
     @Test
