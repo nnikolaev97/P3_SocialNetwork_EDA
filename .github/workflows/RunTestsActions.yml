@@ -1,12 +1,4 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: Java CI with Maven
+name: Test Report and Grade Assignment
 
 on:
   push:
@@ -16,15 +8,14 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     permissions:
       checks: write
       contents: read
 
     steps:
     - uses: actions/checkout@v3
+    
     - name: Set up JDK 21
       uses: actions/setup-java@v3
       with:
@@ -34,9 +25,37 @@ jobs:
         
     - name: Build and Run Tests
       run: mvn test --batch-mode --fail-at-end
+      
     - name: Publish Test Report
       if: success() || failure()
       uses: ScaCap/action-surefire-report@v1.7.3
-     
-        
-    
+
+  grade-assignment:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Grade Assignment
+      if: ${{ needs.build.result == 'success' }}
+      env:
+        MOODLE_URL: ${{ secrets.MOODLE_URL }}
+        MOODLE_TOKEN: ${{ secrets.MOODLE_TOKEN }}
+        ASSIGNMENT_ID: 2
+        USER_ID: 4
+        GRADE: 85
+        APPLY_TO_ALL: 0
+      run: |
+        curl -X POST "${MOODLE_URL}/webservice/rest/server.php" \
+          -d "wstoken=${MOODLE_TOKEN}" \
+          -d "wsfunction=mod_assign_save_grade" \
+          -d "moodlewsrestformat=json" \
+          -d "assignmentid=${ASSIGNMENT_ID}" \
+          -d "userid=${USER_ID}" \
+          -d "grade=${GRADE}" \
+          -d "attemptnumber=-1" \
+          -d "addattempt=0" \
+          -d "workflowstate=graded" \
+          -d "applytoall=${APPLY_TO_ALL}"
